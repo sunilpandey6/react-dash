@@ -1,55 +1,52 @@
 import React, { useEffect, useState } from 'react';
 import Plot from 'react-plotly.js';
-import Papa from 'papaparse';
-import d2 from './D2.csv'
-function LineChart() {
+
+const RealTimePlot = () => {
   const [data, setData] = useState({ x: [], y: [] });
-  // const [layout, setLayout] = useState({});
 
   useEffect(() => {
-    // Load data from CSV using PapaParse
-    Papa.parse(d2, {
-      header: true,
-      download: true,
-      dynamicTyping: true,
-      complete: function(results) {
-        
-        const { data } = results;
-        const x = data.map((row) => row.time);
-        console.log(x)
-        const y = data.map((row) => row.close);
-        console.log(y)
-        setData({ x, y });//NIFTY19JUN5000CE
-        
-      },
+    const socket = new WebSocket('ws://your_server_address/ws/realtime_data/'); // Replace with your server address
+
+    socket.onmessage = (event) => {
+      const jsonData = JSON.parse(event.data);
+      const newTimestamp = jsonData.timestamp;
+      const newValue = jsonData.value;
+
+      setData((prevData) => ({
+        x: [...prevData.x, newTimestamp],
+        y: [...prevData.y, newValue],
+      }));
     });
+
+    return () => {
+      socket.close();
+    };
   }, []);
 
   return (
     <div>
-      <h1>Line Chart</h1>
+      <h1>Real-Time Data Plot</h1>
       <Plot
         data={[
           {
             x: data.x,
             y: data.y,
             type: 'scatter',
-            mode: 'lines+markers',
+            mode: 'lines',
             marker: { color: 'blue' },
+            name: 'Real-Time Data',
           },
         ]}
         layout={{
-          title: 'Line Chart from CSV',
-          xaxis: { 
-            title: 'Time',
-            type: 'date'  ,
-            tickformat: '%H:%M:%S',},
+          title: 'Real-Time Data Plot',
+          xaxis: { title: 'Timestamp' },
           yaxis: { title: 'Value' },
         }}
-        style={{ width: '100%', height: '500px' }}
+        config={{ responsive: true }}
+        style={{ width: '100%', height: '400px' }}
       />
     </div>
   );
-}
+};
 
-export default LineChart;
+export default RealTimePlot;
